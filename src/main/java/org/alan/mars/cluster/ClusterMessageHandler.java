@@ -39,6 +39,7 @@ public class ClusterMessageHandler {
     public SessionEnterListener sessionEnterListener;
     public SessionCloseListener sessionCloseListener;
     public SessionLogoutListener sessionLogoutListener;
+
     /**
      * 连接断开退出
      */
@@ -70,7 +71,7 @@ public class ClusterMessageHandler {
         String sessionId = sessionCreate.sessionId;
         long userId = sessionCreate.userId;
         String gatePath = sessionCreate.nodePath;
-        log.info("用户连接进入，sessionId={}", sessionId);
+        log.info("用户连接进入，sessionId={}, userId = {}", sessionId, userId);
         if (pfSession == null) {
             pfSession = new PFSession(sessionId, connect, sessionCreate.netAddress);
         }
@@ -88,10 +89,10 @@ public class ClusterMessageHandler {
     @Command(MessageConst.SessionConst.NOTIFY_SESSION_LOGOUT)
     public void sessionLogout(Connect connect, SessionLogout sessionLogout) {
         String sessionId = sessionLogout.sessionId;
-        long playerId = sessionLogout.playerId;
-        log.info("用户下线，sessionId={}，playerId={}", sessionId, playerId);
+        long userId = sessionLogout.userId;
+        log.info("用户下线，sessionId={}，userId={}", sessionId, userId);
         if (sessionLogoutListener != null) {
-            sessionLogoutListener.logout(playerId, sessionId);
+            sessionLogoutListener.logout(userId, sessionId);
         }
     }
 
@@ -101,8 +102,8 @@ public class ClusterMessageHandler {
     @Command(MessageConst.SessionConst.NOTIFY_SESSION_KICK_OUT)
     public void sessionKickOut(Connect connect, SessionKickOut sessionKickout) {
         String sessionId = sessionKickout.sessionId;
-        long playerId = sessionKickout.playerId;
-        log.info("用户被顶号下线，sessionId={}，playerId={}", sessionId, playerId);
+        long userId = sessionKickout.userId;
+        log.info("用户被顶号下线，sessionId = {}，userId = {}", sessionId, userId);
         GateSession gateSession = GateSession.gateSessionMap.get(sessionId);
         if (gateSession != null) {
             gateSession.onKickOut();
@@ -128,7 +129,6 @@ public class ClusterMessageHandler {
     public void switchNode(SwitchNodeMessage switchNodeMessage) {
         String targetNodePath = switchNodeMessage.targetNodePath;
         String sessionId = switchNodeMessage.sessionId;
-        long userId = switchNodeMessage.userId;
         ClusterClient clusterClient = clusterSystem.getClusterByPath(targetNodePath);
         GateSession gateSession = GateSession.gateSessionMap.get(sessionId);
         if (gateSession != null && clusterClient != null) {
@@ -160,7 +160,6 @@ public class ClusterMessageHandler {
                 }
             });
         }
-
     }
 
 }

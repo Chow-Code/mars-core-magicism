@@ -36,6 +36,7 @@ import java.util.Map;
  * @author Alan
  * @since 1.0
  */
+@SuppressWarnings("unused")
 public class GateSession extends NettyConnect implements Inbox<PFMessage>, ConnectListener {
 
     public static Map<String, GateSession> gateSessionMap = new HashMap<>();
@@ -141,7 +142,7 @@ public class GateSession extends NettyConnect implements Inbox<PFMessage>, Conne
         try {
             SessionLogout sessionLogout = new SessionLogout();
             sessionLogout.sessionId = sessionId;
-            sessionLogout.playerId = userId;
+            sessionLogout.userId = userId;
             PFMessage pfMessage = MessageUtil.getPFMessage(sessionLogout);
             ClusterMessage clusterMessage = new ClusterMessage(sessionId, pfMessage, userId);
             ClusterClient clusterClient = ClusterSystem.system.getByNodeType(NodeType.ACCOUNT, remoteAddress.getHost(), userId);

@@ -3,10 +3,9 @@ package org.alan.mars.protostuff;
 import com.esotericsoftware.reflectasm.MethodAccess;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import lombok.extern.slf4j.Slf4j;
 import org.alan.mars.message.PFMessage;
 import org.alan.mars.utils.ClassUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.context.ApplicationContext;
 
@@ -23,9 +22,9 @@ import java.util.Set;
  * @author Alan
  * @since 1.0
  */
+@Slf4j
 public class MessageUtil {
 
-    static Logger log = LoggerFactory.getLogger(MessageUtil.class);
     public static Map<Class<?>, ProtobufMessage> responseMap;
 
     public static PFMessage getPFMessage(Object msg) {
@@ -47,7 +46,7 @@ public class MessageUtil {
     static PFMessage getPfMessage(Object msg, Map<Class<?>, ProtobufMessage> responseMap) {
         ProtobufMessage responseMessage = responseMap.get(msg.getClass());
         if (responseMessage == null) {
-            log.warn("消息发送失败，该消息结构没有被ResponseMessage注解，msg-class={}", msg.getClass());
+            log.warn("消息发送失败，该消息结构应该是有ProtobufMessage注解, 且resp = true，msg-class={}", msg.getClass());
             return null;
         }
         byte[] data = ProtostuffUtil.serialize(msg);

@@ -9,8 +9,8 @@ import org.alan.mars.protostuff.ProtobufMessage;
  * @author Alan
  * @since 1.0
  */
-@ProtobufMessage(messageType = MessageConst.SessionConst.TYPE, cmd = MessageConst.SessionConst.NOTIFY_SESSION_LOGOUT, privately = true)
+@ProtobufMessage(messageType = MessageConst.SessionConst.TYPE, cmd = MessageConst.SessionConst.NOTIFY_SESSION_LOGOUT, resp = true, privately = true)
 public class SessionLogout {
-    public long playerId;
+    public long userId;
     public String sessionId;
 }

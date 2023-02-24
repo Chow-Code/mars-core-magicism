@@ -7,6 +7,7 @@ package org.alan.mars.constant;
  * @since 1.0
  */
 public interface MessageConst {
+
     interface SessionConst {
         int TYPE = 100;
         int NOTIFY_SESSION_QUIT = 101;
@@ -19,6 +20,7 @@ public interface MessageConst {
         int CLUSTER_CONNECT_REGISTER = 108;
         //广播消息
         int BROADCAST_MSG = 109;
+
     }
 
     interface ToClientConst {

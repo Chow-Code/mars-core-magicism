@@ -11,6 +11,6 @@ import org.alan.mars.protostuff.ProtobufMessage;
  */
 @ProtobufMessage(messageType = MessageConst.SessionConst.TYPE, cmd = MessageConst.SessionConst.NOTIFY_SESSION_KICK_OUT, resp = true, privately = true)
 public class SessionKickOut {
-    public long playerId;
+    public long userId;
     public String sessionId;
 }

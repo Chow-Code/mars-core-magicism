@@ -42,6 +42,10 @@ public class NodeConfig {
      * 节点tcp服务地址
      */
     protected NetAddress tcpAddress;
+    /**
+     * 节点http服务地址
+     */
+    protected NetAddress httpAddress;
     /* 该节点接收的消息类型*/
     public int[] messageTypes;
     /* 该节点支持的游戏类型*/
@@ -60,4 +64,5 @@ public class NodeConfig {
     public Set<Integer> micServiceMessageTypes;
     /* 是否暴露微服务*/
     public boolean showMicService = true;
+    public String publicIp;
 }

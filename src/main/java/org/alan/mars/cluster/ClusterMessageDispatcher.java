@@ -24,6 +24,7 @@ import java.util.Map;
  * @author Alan
  * @since 1.0
  */
+@SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
 @Slf4j
 @ChannelHandler.Sharable
 public class ClusterMessageDispatcher implements ApplicationListener<ContextRefreshedEvent> {
@@ -129,7 +130,7 @@ public class ClusterMessageDispatcher implements ApplicationListener<ContextRefr
     @Override
     public void onApplicationEvent(ContextRefreshedEvent event) {
         messageControllers = MessageUtil.load(event.getApplicationContext());
-        MessageUtil.loadResponseMessage("org.alan", "com.lsy","com.youloft");
+        MessageUtil.loadResponseMessage("org.alan", "com.xiaoxi");
         messageControllers.forEach((key, value) -> log.info("消息处理器[{}]->{}", key, value.been.getClass().getName()));
     }
 }

@@ -5,6 +5,7 @@
 
 package org.alan.mars.cluster;
 
+import cn.hutool.core.util.StrUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.alan.mars.config.NodeConfig;
 import org.alan.mars.curator.*;
@@ -18,6 +19,7 @@ import org.alan.mars.protostuff.PFSession;
 import org.alan.mars.timer.TimerCenter;
 import org.alan.mars.timer.TimerEvent;
 import org.alan.mars.timer.TimerListener;
+import org.alan.mars.utils.RandomUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.system.ApplicationPid;
@@ -42,6 +44,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @author Alan
  * @since 1.0
  */
+@SuppressWarnings("unused")
 @Component
 @Order(1)
 @Slf4j
@@ -175,6 +178,44 @@ public class ClusterSystem implements MarsNodeListener, ApplicationListener<Cont
         return getByType(NodeType.GATE);
     }
 
+    /**
+     * 随机一个网关节点
+     * @param clientIp 客户端IP 用于白名单验证
+     */
+    public ClusterClient randomGate(long userId, String clientIp){
+        List<ClusterClient> gates = getAllGate();
+        if (gates.isEmpty()){
+            return null;
+        }
+        int[] weight = gates.stream().mapToInt(c -> {
+            //如果userId 为 -1 则不做黑白名单验证
+            if (userId == -1){
+                return c.nodeConfig.weight;
+            }
+            int[] whiteIdList = c.nodeConfig.whiteIdList;
+            if (whiteIdList.length > 0 && Arrays.stream(whiteIdList).noneMatch(id -> id == userId)) {
+                return 0;
+            }
+            String[] whiteIpList = c.nodeConfig.whiteIpList;
+            if (whiteIpList.length > 0 && Arrays.stream(whiteIpList).noneMatch(ip -> StrUtil.equals(clientIp, ip))) {
+                return 0;
+            }
+            return c.nodeConfig.weight;
+        }).toArray();
+        int index = RandomUtil.randomWidget(weight);
+        if (index == -1){
+            return null;
+        }
+        return gates.get(index);
+    }
+
+    /**
+     * 随机一个网关节点
+     */
+    public ClusterClient randomGate(){
+      return randomGate(-1,null);
+    }
+
     public List<ClusterClient> getAll() {
         return new ArrayList<>(clusterClientMap.values());
     }
@@ -293,7 +334,7 @@ public class ClusterSystem implements MarsNodeListener, ApplicationListener<Cont
     }
 
     @Override
-    public void run(String... args) throws Exception {
+    public void run(String... args) {
         system = this;
         startClusterServer();
         marsCurator.addMarsNodeListener(this);
