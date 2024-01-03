@@ -1,14 +1,11 @@
-/*
- * Copyright (c) 2017. Chengdu Qianxing Technology Co.,LTD.
- * All Rights Reserved.
- */
-
 package org.alan.mars.config;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 import org.alan.mars.message.NetAddress;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.util.Set;
@@ -25,6 +22,8 @@ import java.util.Set;
 @Component
 @Getter
 @Setter
+@Order(1)
+@ToString
 public class NodeConfig {
     /**
      * 节点默认父目录
@@ -39,6 +38,10 @@ public class NodeConfig {
      */
     protected String name;
     /**
+     * 标号
+     */
+    protected int num;
+    /**
      * 节点tcp服务地址
      */
     protected NetAddress tcpAddress;
@@ -46,23 +49,56 @@ public class NodeConfig {
      * 节点http服务地址
      */
     protected NetAddress httpAddress;
-    /* 该节点接收的消息类型*/
+    /**
+     * 该节点接收的消息类型
+     */
     public int[] messageTypes;
-    /* 该节点支持的游戏类型*/
+    /**
+     * 该节点支持的游戏类型
+     */
     public int[] gameTypes;
-    /* 节点权重*/
+    /**
+     * 节点权重
+     */
     public int weight = 1;
-    /* IP白名单*/
+    /**
+     * IP白名单
+     */
     public String[] whiteIpList;
-    /* 用户ID白名单*/
-    public int[] whiteIdList;
-    /* 单连接是否使用工作线程池*/
+    /**
+     * 用户ID白名单
+     */
+    public long[] whiteIdList;
+    /**
+     * 单连接是否使用工作线程池
+     */
     public boolean workPool;
-    /* 业务线程数*/
-    public int workPoolNum = 9;
-    /* 节点支持的微服务消息号*/
+    /**
+     * 业务线程数
+     */
+    public int workPoolNum = Runtime.getRuntime().availableProcessors() * 16;
+    /**
+     * 节点支持的微服务消息号
+     */
     public Set<Integer> micServiceMessageTypes;
-    /* 是否暴露微服务*/
+    /**
+     * 是否暴露微服务
+     */
     public boolean showMicService = true;
+    /**
+     * 集群间连接数量
+     */
+    public int clusterConnectPoolSize = 6;
+    /**
+     * gate的公网IP
+     */
     public String publicIp;
+    /**
+     * 使用代理的形式获取玩家的地址
+     */
+    public boolean useHaProxyAddress;
+    /**
+     * 是否支持会话转移
+     */
+    public boolean transferSession;
 }

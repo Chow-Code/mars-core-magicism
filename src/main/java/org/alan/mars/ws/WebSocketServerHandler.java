@@ -1,5 +1,6 @@
 package org.alan.mars.ws;
 
+import cn.hutool.core.util.StrUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFuture;
@@ -16,8 +17,8 @@ import io.netty.util.Attribute;
 import io.netty.util.AttributeKey;
 import io.netty.util.CharsetUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.alan.mars.message.PFMessage;
 import org.alan.mars.gate.GateSession;
+import org.alan.mars.message.PFMessage;
 
 /**
  * Created on 2018/4/12.
@@ -38,6 +39,7 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<Object> 
         gateSession.channelActive(ctx);
         GateSession.gateSessionMap.put(gateSession.sessionId, gateSession);
     }
+
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
         if (evt instanceof IdleStateEvent) {
@@ -77,7 +79,7 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<Object> 
     }
 
     @Override
-    public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
+    public void channelReadComplete(ChannelHandlerContext ctx) {
         ctx.flush();
     }
 
@@ -102,7 +104,7 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<Object> 
             log.debug("收到消息，session={},msg={}", ctx.channel().id(), msg);
             FullHttpRequest fullHttpRequest = (FullHttpRequest) msg;
             String ip = getRealIp(fullHttpRequest);
-            if (ip != null && ip.length() > 0) {
+            if (StrUtil.isNotEmpty(ip)) {
                 if (ip.contains(":")) {
                     ip = ip.split(":")[0];
                 } else if (ip.contains(",")) {
@@ -143,9 +145,10 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<Object> 
     public void decode(ChannelHandlerContext ctx, ByteBuf msg) {
         int messageType = msg.readUnsignedShort();
         int cmd = msg.readUnsignedShort();
+        int reqId = msg.readUnsignedShort();
         byte[] array = new byte[msg.readableBytes()];
         msg.getBytes(msg.readerIndex(), array, 0, array.length);
-        PFMessage message = new PFMessage(messageType, cmd, array);
+        PFMessage message = new PFMessage(messageType, cmd, reqId ,array);
 
         String sessionId = ctx.channel().id().asShortText();
         GateSession gateSession = GateSession.gateSessionMap.get(sessionId);
@@ -195,7 +198,7 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<Object> 
     //异常处理，netty默认是关闭channel
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        cause.printStackTrace();
+        log.error("通讯异常", cause);
         ctx.close();
     }
 }

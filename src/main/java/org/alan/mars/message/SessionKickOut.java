@@ -2,6 +2,7 @@ package org.alan.mars.message;
 
 import org.alan.mars.constant.MessageConst;
 import org.alan.mars.protostuff.ProtobufMessage;
+import org.alan.mars.tips.KickOutType;
 
 /**
  * Created on 2017/11/23.
@@ -13,4 +14,5 @@ import org.alan.mars.protostuff.ProtobufMessage;
 public class SessionKickOut {
     public long userId;
     public String sessionId;
+    public KickOutType reason;
 }

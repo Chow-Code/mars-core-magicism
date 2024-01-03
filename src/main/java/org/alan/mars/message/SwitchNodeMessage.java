@@ -12,11 +12,9 @@ import org.alan.mars.protostuff.ProtobufMessage;
 @ProtobufMessage(resp = true, messageType = MessageConst.SessionConst.TYPE, cmd = MessageConst.SessionConst.NOTIFY_SWITCH_NODE, privately = true)
 public class SwitchNodeMessage {
 
-    public String sessionId;
-    //目标节点路径
-    public String targetNodePath;
-
-    public long userId;
+    public final String sessionId;
+    public final String targetNodePath;
+    public final long userId;
 
     public SwitchNodeMessage(String sessionId, String targetNodePath, long userId) {
         this.sessionId = sessionId;

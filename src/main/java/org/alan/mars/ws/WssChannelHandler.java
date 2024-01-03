@@ -9,7 +9,6 @@ import io.netty.handler.timeout.IdleStateHandler;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
-import java.io.FileInputStream;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -27,8 +26,7 @@ public class WssChannelHandler extends ChannelInitializer<SocketChannel> {
     public WssChannelHandler() {
     }
     @Override
-    protected void initChannel(SocketChannel ch) throws Exception {
-        // TODO Auto-generated method stub
+    protected void initChannel(SocketChannel ch) {
         ch.pipeline().addLast("idleStateHandler", new IdleStateHandler(0, 0,30, TimeUnit.SECONDS));
         ch.pipeline().addLast("http-codec", new HttpServerCodec());
         ch.pipeline().addLast("aggregator", new HttpObjectAggregator(65536));

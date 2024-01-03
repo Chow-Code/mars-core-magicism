@@ -1,9 +1,3 @@
-/**
- * Copyright Chengdu Qianxing Technology Co.,LTD.
- * All Rights Reserved.
- * <p>
- * 2016年5月31日
- */
 package org.alan.mars.netty;
 
 import io.netty.bootstrap.ServerBootstrap;
@@ -16,8 +10,7 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 采用Netty4.x 实现NIO服务器，该类继承了Thread 线程类，应用过程中如果需要
@@ -29,10 +22,8 @@ import org.slf4j.LoggerFactory;
  * @author Alan
  * @since 1.0
  */
+@Slf4j
 public class NettyServer extends Thread {
-
-    Logger log = LoggerFactory.getLogger(getClass());
-
     /**
      * 服务监听端口
      */

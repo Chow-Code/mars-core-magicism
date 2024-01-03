@@ -1,10 +1,10 @@
 package org.alan.mars.cluster;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.alan.mars.protostuff.MessageUtil;
-import org.alan.mars.message.PFMessage;
 import org.alan.mars.message.BroadCastMessage;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.alan.mars.message.PFMessage;
+import org.alan.mars.protostuff.MessageUtil;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -20,33 +20,43 @@ import java.util.Set;
  */
 @Component
 @Slf4j
+@RequiredArgsConstructor
 public class ClusterMsgSender {
 
-    @Autowired
-    private ClusterSystem clusterSystem;
+    private final ClusterSystem clusterSystem;
+
     /**
      * 向所有网关广播消息
      */
-    public void broadcast2Gates(Object msg , Set<Long> playerIds) {
+    private void broadcast2Gates(Object msg, Set<Long> playerIds, Set<Integer> serverAreas) {
         List<ClusterClient> clusterClients = clusterSystem.getAllGate();
         if (clusterClients != null && !clusterClients.isEmpty()) {
             clusterClients.forEach(clusterClient -> {
                 try {
                     PFMessage message = MessageUtil.getPFMessage(msg);
-                    BroadCastMessage msg1 = new BroadCastMessage(message);
-                    msg1.playerIds = playerIds;
-                    PFMessage pfMessage = MessageUtil.getPFMessage(msg1);
+                    BroadCastMessage broadCastMessage = new BroadCastMessage(message);
+                    broadCastMessage.playerIds = playerIds;
+                    broadCastMessage.serverAreas = serverAreas;
+                    PFMessage pfMessage = MessageUtil.getPFMessage(broadCastMessage);
                     ClusterMessage clusterMessage = new ClusterMessage(pfMessage);
                     clusterClient.write(clusterMessage);
                     log.debug("广播消息成功");
                 } catch (Exception e) {
-                    e.printStackTrace();
-                    log.warn("广播消息到网关失败,gateName=" + clusterClient.nodeConfig.getName(), e);
+                    log.warn("广播消息到网关失败, gateName=" + clusterClient.nodeConfig.getName(), e);
                 }
             });
         }
     }
-    public void broadcast2Gates(Object msg) {
-        broadcast2Gates(msg,null);
+
+    public void broadcast2Players(Object msg, Set<Long> playerIds) {
+        broadcast2Gates(msg, playerIds, null);
+    }
+
+    public void broadcast2ServerAreas(Object msg, Set<Integer> serverAreas) {
+        broadcast2Gates(msg, null, serverAreas);
+    }
+
+    public void broadcast2All(Object msg) {
+        broadcast2Gates(msg, null, null);
     }
 }

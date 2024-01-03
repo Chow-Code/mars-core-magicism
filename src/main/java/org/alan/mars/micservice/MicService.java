@@ -7,7 +7,6 @@ import java.lang.annotation.Target;
 
 /**
  * Created on 2019/5/16.
- *
  * 微服务注解
  * @author Alan
  * @since 1.0

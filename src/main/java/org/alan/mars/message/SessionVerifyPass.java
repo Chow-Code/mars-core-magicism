@@ -15,4 +15,6 @@ public class SessionVerifyPass {
     public long userId;
     public long create;
     public String ip;
+    public long playerId;
+    public int serverArea;
 }

@@ -1,8 +1,3 @@
-/*
- * Copyright (c) 2017. Chengdu Qianxing Technology Co.,LTD.
- * All Rights Reserved.
- */
-
 package org.alan.mars.cluster;
 
 import io.netty.channel.ChannelInitializer;
@@ -30,9 +25,9 @@ public class ClusterConnectInitializer extends ChannelInitializer<SocketChannel>
     }
 
     @Override
-    protected void initChannel(SocketChannel ch) throws Exception {
+    protected void initChannel(SocketChannel ch) {
         ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(
-                MSG_MAX_SIZE, 0, HEADER_SIZE, 0, 4))
+                        MSG_MAX_SIZE, 0, HEADER_SIZE, 0, 4))
                 .addLast(new ClusterMessageDecoder())
                 .addLast(new LengthFieldPrepender(HEADER_SIZE))
                 .addLast(new ClusterMessageEncoder())

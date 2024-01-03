@@ -1,9 +1,3 @@
-/**
- * Copyright Chengdu Qianxing Technology Co.,LTD.
- * All Rights Reserved.
- *
- * 2017年3月2日 	
- */
 package org.alan.mars.config;
 
 import lombok.Getter;
@@ -13,11 +7,8 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * zk 配置信息
- * 
- * @scene 1.0
- * 
- * @author Alan
  *
+ * @author Alan
  */
 @Configuration
 @ConfigurationProperties(prefix = "zookeeper")

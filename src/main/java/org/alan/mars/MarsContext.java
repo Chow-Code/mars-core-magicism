@@ -1,36 +1,36 @@
-/**
- * Copyright Chengdu Qianxing Technology Co.,LTD.
- * All Rights Reserved.
- *
- * 2017年3月1日 	
- */
 package org.alan.mars;
 
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Arrays;
 
 @Component
 public final class MarsContext implements ApplicationContextAware {
-
-    static Map<String, Object> marsBeans = new HashMap<>();
-
-    static ApplicationContext CONTEXT;
-
+    private static ApplicationContext CONTEXT;
     public static ApplicationContext getContext() {
         return CONTEXT;
     }
+    public static final String DEV_PROFILE = "dev";
+    public static final String TEST_PROFILE = "test";
+    public static final String RELEASE_PROFILE = "release";
 
-    public static <T> T getMarsBean(Class<T> clazz) {
-        return (T) marsBeans.get(clazz.getSimpleName());
+    public static boolean isDev() {
+        String[] activeProfiles = getContext().getEnvironment().getActiveProfiles();
+        return Arrays.asList(activeProfiles).contains(DEV_PROFILE);
     }
 
-    public static void addMarsBean(Object obj) {
-        marsBeans.put(obj.getClass().getSimpleName(), obj);
+    public static boolean isTest() {
+        String[] activeProfiles = getContext().getEnvironment().getActiveProfiles();
+        return Arrays.asList(activeProfiles).contains(TEST_PROFILE);
+    }
+
+    public static boolean isRelease() {
+        String[] activeProfiles = getContext().getEnvironment().getActiveProfiles();
+        return Arrays.asList(activeProfiles).contains(RELEASE_PROFILE);
     }
 
     // 通过name获取 Bean.
@@ -49,7 +49,7 @@ public final class MarsContext implements ApplicationContextAware {
     }
 
     @Override
-    public void setApplicationContext(ApplicationContext applicationContext)
+    public void setApplicationContext(@NonNull ApplicationContext applicationContext)
             throws BeansException {
         CONTEXT = applicationContext;
     }

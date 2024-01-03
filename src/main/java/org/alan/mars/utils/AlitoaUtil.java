@@ -1,5 +1,7 @@
 package org.alan.mars.utils;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -13,28 +15,29 @@ import java.net.InetAddress;
  * @author Alan
  * @since 1.0
  */
-public class AlitoaUtil {
+@Slf4j
+public class AliToaUtil {
     public static String getIp(String ip, int port) {
         //传入0表示让操作系统分配一个端口号
         try (DatagramSocket socket = new DatagramSocket(0)) {
             socket.setSoTimeout(1000);
             InetAddress host = InetAddress.getByName("127.0.0.1");
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            DataOutputStream dos = new DataOutputStream(baos);
+            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+            DataOutputStream dos = new DataOutputStream(stream);
             dos.write(ipToBytes(ip), 0, 4);
             dos.write(intToBytes(port), 2, 2);
             dos.writeInt(0);
             dos.writeShort(0);
             dos.flush();
             //指定包要发送的目的地
-            DatagramPacket request = new DatagramPacket(baos.toByteArray(), 12, host, 48888);
+            DatagramPacket request = new DatagramPacket(stream.toByteArray(), 12, host, 48888);
             //为接受的数据包创建空间
             DatagramPacket response = new DatagramPacket(new byte[12], 12);
             socket.send(request);
             socket.receive(response);
             return bytesToIp(response.getData());
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("获取阿里真实IP地址失败",e);
         }
         return ip;
     }

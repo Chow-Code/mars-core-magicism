@@ -1,10 +1,6 @@
-/*
- * Copyright (c) 2017. Chengdu Qianxing Technology Co.,LTD.
- * All Rights Reserved.
- */
-
 package org.alan.mars.cluster;
 
+import lombok.ToString;
 import org.alan.mars.config.NodeConfig;
 import org.alan.mars.curator.MarsNode;
 import org.alan.mars.net.Connect;
@@ -20,6 +16,7 @@ import org.alan.mars.netty.ConnectPool;
  * @author Alan
  * @since 1.0
  */
+@ToString
 public class ClusterClient {
     /**
      * 节点的配置信息
@@ -47,7 +44,7 @@ public class ClusterClient {
         this.connectPool = clusterSystem.getMarsConnectPool(nodeConfig.getTcpAddress());
     }
 
-    public Connect getConnect() throws InterruptedException {
+    public Connect getConnect() {
         return connectPool.getConnect();
     }
 
@@ -55,7 +52,7 @@ public class ClusterClient {
         return connectPool.getConnectSync();
     }
 
-    public void write(Object msg) throws InterruptedException {
+    public void write(Object msg) {
         connectPool.getConnect().write(msg);
     }
 

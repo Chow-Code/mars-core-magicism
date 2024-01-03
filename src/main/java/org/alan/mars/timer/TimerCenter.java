@@ -1,19 +1,12 @@
-/*
- * Copyright (c) 2017. Chengdu Qianxing Technology Co.,LTD.
- * All Rights Reserved.
- */
-
 package org.alan.mars.timer;
 
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.alan.mars.executor.MarsWorkExecutor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.util.Iterator;
 import java.util.List;
-import java.util.Timer;
 import java.util.concurrent.*;
 
 /**
@@ -28,6 +21,8 @@ public class TimerCenter extends Thread {
     /**
      * 定时器事件数组
      */
+    @Setter
+    @Getter
     private List<TimerEvent<?>> array = new CopyOnWriteArrayList<>();
     /**
      * 活动标志
@@ -37,9 +32,8 @@ public class TimerCenter extends Thread {
     /**
      * 定时事件执行线程池
      */
+    @Setter
     private ThreadPoolExecutor timerService;
-    /* qz 类型的时间表类型定时器*/
-    private SchedulerCenter schedulerCenter;
     /* 线性业务执行器*/
     @Autowired(required = false)
     private MarsWorkExecutor workExecutor;
@@ -54,13 +48,7 @@ public class TimerCenter extends Thread {
                 Runtime.getRuntime().availableProcessors() + 1, 10L,
                 TimeUnit.SECONDS, new ArrayBlockingQueue<>(8),
                 new ThreadPoolExecutor.CallerRunsPolicy());
-        schedulerCenter = new SchedulerCenter();
     }
-
-    public SchedulerCenter schedulerCenter() {
-        return this.schedulerCenter;
-    }
-
     /**
      * 判断是否包含指定的对象
      */
@@ -68,20 +56,8 @@ public class TimerCenter extends Thread {
         return array.contains(e);
     }
 
-    public List<TimerEvent<?>> getArray() {
-        return array;
-    }
-
     public ExecutorService getTimerService() {
         return timerService;
-    }
-
-    public void setArray(List<TimerEvent<?>> array) {
-        this.array = array;
-    }
-
-    public void setTimerService(ThreadPoolExecutor timerService) {
-        this.timerService = timerService;
     }
 
     /**
@@ -138,6 +114,7 @@ public class TimerCenter extends Thread {
         }
     }
 
+    @SuppressWarnings("BusyWait")
     public void run() {
         begin();
         while (active) {

@@ -2,9 +2,6 @@ package org.alan.mars.micservice;
 
 import lombok.extern.slf4j.Slf4j;
 import org.alan.mars.protostuff.MessageType;
-import org.alan.mars.protostuff.MessageUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationListener;
@@ -26,7 +23,7 @@ import java.util.Set;
 @Component
 @Slf4j
 public class MicServiceManager implements ApplicationListener<ContextRefreshedEvent> {
-    public Set<Integer> messageTypes = new HashSet<>();
+    public final Set<Integer> messageTypes = new HashSet<>();
     @Override
     public void onApplicationEvent(ContextRefreshedEvent event) {
         ApplicationContext applicationContext = event.getApplicationContext();
@@ -37,7 +34,7 @@ public class MicServiceManager implements ApplicationListener<ContextRefreshedEv
         log.debug("开始扫描 {} 微服务", clazz);
         Map<String, Object> beans = context.getBeansWithAnnotation(clazz);
         beans.values().forEach(o -> {
-            MessageType messageType = null;
+            MessageType messageType;
             if (AopUtils.isAopProxy(o)) {
                 messageType = AopUtils.getTargetClass(o).getAnnotation(MessageType.class);
             } else {

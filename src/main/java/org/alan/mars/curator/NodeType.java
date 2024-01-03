@@ -1,8 +1,3 @@
-/*
- * Copyright (c) 2017. Chengdu Qianxing Technology Co.,LTD.
- * All Rights Reserved.
- */
-
 package org.alan.mars.curator;
 
 /**
@@ -11,5 +6,5 @@ package org.alan.mars.curator;
  * @since 1.0
  */
 public enum NodeType {
-    ACCOUNT, HALL, ROOM, GATE,
+    ACCOUNT, HALL, MANAGE, GATE, EVENT_CENTER
 }

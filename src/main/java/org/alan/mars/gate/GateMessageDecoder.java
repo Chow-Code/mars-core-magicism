@@ -15,12 +15,13 @@ import java.util.List;
  */
 public class GateMessageDecoder extends MessageToMessageDecoder<ByteBuf> {
     @Override
-    protected void decode(ChannelHandlerContext ctx, ByteBuf msg, List<Object> out) throws Exception {
+    protected void decode(ChannelHandlerContext ctx, ByteBuf msg, List<Object> out) {
         int messageType = msg.readUnsignedShort();
         int cmd = msg.readUnsignedShort();
+        int reqId = msg.readUnsignedShort();
         byte[] array = new byte[msg.readableBytes()];
         msg.getBytes(msg.readerIndex(), array, 0, array.length);
-        PFMessage message = new PFMessage(messageType, cmd, array);
+        PFMessage message = new PFMessage(messageType, cmd, reqId ,array);
         out.add(message);
     }
 }

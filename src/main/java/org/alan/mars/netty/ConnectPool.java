@@ -1,8 +1,3 @@
-/*
- * Copyright (c) 2017. Chengdu Qianxing Technology Co.,LTD.
- * All Rights Reserved.
- */
-
 package org.alan.mars.netty;
 
 import io.netty.bootstrap.Bootstrap;
@@ -36,8 +31,8 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class ConnectPool implements ConnectListener, TimerListener<Object>, ChannelFutureListener {
 
-    public final static int MAX_POOL_SIZE = 10;
-    public final static int POOL_SIZE = 2;
+    public final static int MAX_POOL_SIZE = 20;
+    public final static int POOL_SIZE = 10;
     private final NetAddress netAddress;
     private final NetAddress localAddress;
     private final ChannelInitializer<SocketChannel> initializer;
@@ -45,9 +40,13 @@ public class ConnectPool implements ConnectListener, TimerListener<Object>, Chan
     private List<NettyConnect> connectList;
     private final Random random = new Random();
     private TimerCenter timerCenter;
-
+  
     public ConnectPool(NetAddress netAddress, ChannelInitializer<SocketChannel> initializer) {
         this(netAddress, null, initializer, POOL_SIZE);
+    }
+
+    public ConnectPool(NetAddress netAddress, ChannelInitializer<SocketChannel> initializer, int poolSize) {
+        this(netAddress, null, initializer, poolSize);
     }
 
     public ConnectPool(NetAddress netAddress, NetAddress localAddress, ChannelInitializer<SocketChannel> initializer) {
@@ -57,6 +56,7 @@ public class ConnectPool implements ConnectListener, TimerListener<Object>, Chan
     public ConnectPool(NetAddress netAddress, NetAddress localAddress, ChannelInitializer<SocketChannel> initializer, int poolSize) {
         this.netAddress = netAddress;
         this.initializer = initializer;
+        int poolSize1 = poolSize > 0 ? poolSize : POOL_SIZE;
         this.localAddress = localAddress;
     }
 
@@ -119,12 +119,12 @@ public class ConnectPool implements ConnectListener, TimerListener<Object>, Chan
     }
 
     public void close(Connect connect) {
-        connectList.removeIf(c -> c.equals(connect));
+        connectList.remove((NettyConnect) connect);
     }
 
     @Override
     public void onConnectClose(Connect connect) {
-        connectList.removeIf(c -> c.equals(connect));
+        connectList.remove((NettyConnect) connect);
     }
 
     @Override
@@ -135,7 +135,7 @@ public class ConnectPool implements ConnectListener, TimerListener<Object>, Chan
     }
 
     @Override
-    public void operationComplete(ChannelFuture cf) throws Exception {
+    public void operationComplete(ChannelFuture cf) {
         if (cf.isSuccess()) {
             NettyConnect connect = cf.channel().pipeline().get(NettyConnect.class);
             connect.addConnectListener(this);

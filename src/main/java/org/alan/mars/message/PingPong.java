@@ -14,7 +14,7 @@ public class PingPong {
 
     @ProtobufMessage(resp = true, messageType = 1, cmd = 2, desc = "Pong消息")
     public static class RespPong {
-        long time;
+        public final long time;
 
         public RespPong(long time) {
             this.time = time;

@@ -1,25 +1,22 @@
-/**
- * Copyright Chengdu Qianxing Technology Co.,LTD.
- * All Rights Reserved.
- * <p>
- * 2017年2月27日
- */
 package org.alan.mars.message;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.alan.mars.protostuff.ProtobufMessage;
-
-import java.util.Objects;
+import org.apache.commons.lang3.builder.EqualsBuilder;
 
 /**
  * @author Alan
  * @since 1.0
  */
 @ProtobufMessage(privately = true)
+@Getter
+@Setter
 public class NetAddress {
 
     private String host;
 
-    private int port;
+    private Integer port;
 
     public NetAddress() {
     }
@@ -28,37 +25,20 @@ public class NetAddress {
         this.host = host;
         this.port = port;
     }
-
-    public String getHost() {
-        return host;
-    }
-
-    public void setHost(String host) {
-        this.host = host;
-    }
-
-    public int getPort() {
-        return port;
-    }
-
-    public void setPort(int port) {
-        this.port = port;
-    }
-
     @Override
     public String toString() {
-        return "[host=" + host + ", port=" + port + "]";
+        return "[" + host + ":" + port + "]";
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+
+        if (!(o instanceof NetAddress)) return false;
 
         NetAddress that = (NetAddress) o;
 
-        if (port != that.port) return false;
-        return Objects.equals(host, that.host);
+        return new EqualsBuilder().append(host, that.host).append(port, that.port).isEquals();
     }
 
     @Override

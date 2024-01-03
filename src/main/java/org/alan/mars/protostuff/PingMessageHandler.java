@@ -27,7 +27,7 @@ public class PingMessageHandler {
             session.send(new PingPong.RespPong(System.currentTimeMillis()));
         } else if (connect != null) {
             PingPong.RespPong respPong = new PingPong.RespPong(0);
-            PFMessage pfMessage = new PFMessage(1, 2, ProtostuffUtil.serialize(respPong));
+            PFMessage pfMessage = new PFMessage(1, 2, 0, ProtostuffUtil.serialize(respPong));
             ClusterMessage clusterMessage = new ClusterMessage(pfMessage);
             connect.write(clusterMessage);
         }

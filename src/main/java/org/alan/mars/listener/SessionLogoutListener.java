@@ -7,5 +7,5 @@ package org.alan.mars.listener;
  * @since 1.0
  */
 public interface SessionLogoutListener {
-    void logout(long playerId, String sessionId);
+    void logout( String sessionId, long userId, long playerId);
 }

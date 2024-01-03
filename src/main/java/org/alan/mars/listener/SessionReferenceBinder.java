@@ -10,5 +10,5 @@ import org.alan.mars.protostuff.PFSession;
  */
 public interface SessionReferenceBinder {
 
-    void bind(PFSession session, long userId);
+    void bind(PFSession session, long userId, long playerId);
 }

@@ -1,13 +1,8 @@
-/*
- * Copyright (c) 2017. Chengdu Qianxing Technology Co.,LTD.
- * All Rights Reserved.
- */
-
 package org.alan.mars.timer;
 
+import lombok.Getter;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
-import org.quartz.JobExecutionException;
 import org.quartz.JobKey;
 
 /**
@@ -16,6 +11,7 @@ import org.quartz.JobKey;
  * @author Alan
  * @since 1.0
  */
+@Getter
 public class SchedulerEvent<T> extends TimerEvent<T> implements Job {
     private final String cronExpression;
 
@@ -26,30 +22,20 @@ public class SchedulerEvent<T> extends TimerEvent<T> implements Job {
     public SchedulerEvent(TimerListener<T> listener, T parameter, String cronExpression) {
         super(listener, parameter);
         this.cronExpression = cronExpression;
+        this.jobKey = new JobKey(listener.getClass().getName() + "_" + cronExpression);
     }
 
     @Override
-    public void execute(JobExecutionContext context) throws JobExecutionException {
+    public void execute(JobExecutionContext context) {
         listener.onTimer(this);
-    }
-
-    public JobExecutionContext getJobExecutionContext() {
-        return jobExecutionContext;
     }
 
     public void setJobExecutionContext(JobExecutionContext jobExecutionContext) {
         this.jobExecutionContext = jobExecutionContext;
     }
 
-    public JobKey getJobKey() {
-        return jobKey;
-    }
-
     public void setJobKey(JobKey jobKey) {
         this.jobKey = jobKey;
     }
 
-    public String getCronExpression() {
-        return cronExpression;
-    }
 }

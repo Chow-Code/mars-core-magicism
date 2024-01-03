@@ -15,15 +15,18 @@ public class PFMessage {
     public int messageType;
     /* 子命令字*/
     public int cmd;
+    /* 请求ID */
+    public int reqId;
     /* 数据*/
     public byte[] data;
 
     public PFMessage() {
     }
 
-    public PFMessage(int messageType, int cmd, byte[] data) {
+    public PFMessage(int messageType, int cmd, int reqId ,byte[] data) {
         this.messageType = messageType;
         this.cmd = cmd;
+        this.reqId = reqId;
         this.data = data;
     }
 

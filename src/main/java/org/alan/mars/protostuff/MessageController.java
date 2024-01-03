@@ -11,9 +11,9 @@ import java.util.Map;
  * @since 1.0
  */
 public class MessageController {
-    public Object been;
-    public MethodAccess methodAccess;
-    public Map<Integer, MethodInfo> MethodInfos;
+    public final Object been;
+    public final MethodAccess methodAccess;
+    public final Map<Integer, MethodInfo> MethodInfos;
 
     public MessageController(Object been) {
         this.been = been;

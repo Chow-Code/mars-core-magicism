@@ -4,7 +4,6 @@ import java.io.File;
 
 /**
  * 文件改变通知器
- *
  * Created on 2019/7/24.
  *
  * @author Alan

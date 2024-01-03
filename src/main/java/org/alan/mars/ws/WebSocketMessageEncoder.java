@@ -16,7 +16,7 @@ import java.util.List;
  */
 public class WebSocketMessageEncoder extends MessageToMessageEncoder<PFMessage> {
     @Override
-    protected void encode(ChannelHandlerContext ctx, PFMessage msg, List<Object> out) throws Exception {
+    protected void encode(ChannelHandlerContext ctx, PFMessage msg, List<Object> out) {
         out.add(new BinaryWebSocketFrame(MessageUtil.encode(msg)));
     }
 }

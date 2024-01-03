@@ -1,18 +1,14 @@
-/*
- * Copyright (c) 2017. Chengdu Qianxing Technology Co.,LTD.
- * All Rights Reserved.
- */
-
 package org.alan.mars.cluster;
 
 import cn.hutool.core.util.StrUtil;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.alan.mars.config.NodeConfig;
 import org.alan.mars.curator.*;
 import org.alan.mars.gate.GateClusterMessageDispatcher;
+import org.alan.mars.message.NetAddress;
 import org.alan.mars.message.SwitchNodeMessage;
 import org.alan.mars.net.Connect;
-import org.alan.mars.message.NetAddress;
 import org.alan.mars.netty.ConnectPool;
 import org.alan.mars.netty.NettyServer;
 import org.alan.mars.protostuff.PFSession;
@@ -20,7 +16,6 @@ import org.alan.mars.timer.TimerCenter;
 import org.alan.mars.timer.TimerEvent;
 import org.alan.mars.timer.TimerListener;
 import org.alan.mars.utils.RandomUtil;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.system.ApplicationPid;
 import org.springframework.context.ApplicationListener;
@@ -35,6 +30,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 /**
  * 集群系统总线
@@ -48,6 +44,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Component
 @Order(1)
 @Slf4j
+@RequiredArgsConstructor
 public class ClusterSystem implements MarsNodeListener, ApplicationListener<ContextRefreshedEvent>, CommandLineRunner, TimerListener<String> {
 
     public static ClusterSystem system;
@@ -72,18 +69,14 @@ public class ClusterSystem implements MarsNodeListener, ApplicationListener<Cont
      * 微服务消息节点索引
      */
     private final Map<Integer, List<MarsNode>> microserviceIndexes = new HashMap<>();
-    @Autowired
-    public NodeManager nodeManager;
-    @Autowired
-    public MarsCurator marsCurator;
-    @Autowired
-    public NodeConfig nodeConfig;
-    @Autowired(required = false)
-    public TimerCenter timerCenter;
+    public final NodeManager nodeManager;
+    public final MarsCurator marsCurator;
+    public final NodeConfig nodeConfig;
+    public final TimerCenter timerCenter;
 
     @Bean
     public ClusterMessageDispatcher clusterMessageDispatcher() {
-        if (NodeType.GATE.toString().equals(nodeManager.nodeConfig.getType())) {
+        if (NodeType.GATE.toString().equals(nodeConfig.getType())) {
             return clusterMessageDispatcher = new GateClusterMessageDispatcher(this);
         } else {
             return clusterMessageDispatcher = new ClusterMessageDispatcher(this);
@@ -97,8 +90,8 @@ public class ClusterSystem implements MarsNodeListener, ApplicationListener<Cont
         return initializer;
     }
 
-    public Map<String, PFSession> sessionMap() {
-        return sessionMap;
+    public int sessionCount() {
+        return sessionMap.size();
     }
 
     /**
@@ -109,12 +102,23 @@ public class ClusterSystem implements MarsNodeListener, ApplicationListener<Cont
     }
 
     /**
+     * 增加session
+     */
+    public void addSession(PFSession pfSession){
+        sessionMap.put(pfSession.getSessionId(), pfSession);
+    }
+
+    public PFSession getSession(String sessionId){
+        return sessionMap.get(sessionId);
+    }
+
+    /**
      * 切换到固定节点
      */
     public void switchNode(PFSession pfSession, MarsNode marsNode) {
         log.info("[集群系统] 切换，sessionId={} -> {}", pfSession.getSessionId(), marsNode.getNodePath());
         try {
-            SwitchNodeMessage switchNodeMessage = new SwitchNodeMessage(pfSession.getSessionId(), marsNode.getNodePath(), pfSession.userId);
+            SwitchNodeMessage switchNodeMessage = new SwitchNodeMessage(pfSession.getSessionId(), marsNode.getNodePath(), pfSession.getUserId());
             pfSession.send2Gate(switchNodeMessage);
             sessionMap.remove(pfSession.getSessionId());
         } catch (Exception e) {
@@ -127,7 +131,7 @@ public class ClusterSystem implements MarsNodeListener, ApplicationListener<Cont
      */
     public MarsNode switchNode(PFSession pfSession, NodeType nodeType) {
         try {
-            MarsNode marsNode = randomMarsNode(nodeType, pfSession.getAddress().getHost(), pfSession.userId);
+            MarsNode marsNode = randomMarsNode(nodeType, pfSession.getAddress().getHost(), pfSession.getUserId());
             switchNode(pfSession, marsNode);
             return marsNode;
         } catch (Exception e) {
@@ -154,7 +158,7 @@ public class ClusterSystem implements MarsNodeListener, ApplicationListener<Cont
         return nodeManager.getMarNodePath(nodeConfig.getType(), nodeConfig.getName());
     }
 
-    public ClusterClient getByNodeType(NodeType nodeType, String ip, long id) {
+    public ClusterClient randomOneByType(NodeType nodeType, String ip, long id) {
         MarsNode randomOneMarsNode = randomMarsNode(nodeType, ip, id);
         if (randomOneMarsNode == null) {
             return null;
@@ -175,59 +179,61 @@ public class ClusterSystem implements MarsNodeListener, ApplicationListener<Cont
      * 获取所有网关节点
      */
     public List<ClusterClient> getAllGate() {
-        return getByType(NodeType.GATE);
+        return getAllByType(NodeType.GATE);
     }
 
     /**
      * 随机一个网关节点
+     *
      * @param clientIp 客户端IP 用于白名单验证
      */
-    public ClusterClient randomGate(long userId, String clientIp){
+    public MarsNode randomGate(long userId, String clientIp) {
         List<ClusterClient> gates = getAllGate();
-        if (gates.isEmpty()){
+        if (gates.isEmpty()) {
             return null;
         }
-        int[] weight = gates.stream().mapToInt(c -> {
+        List<MarsNode> collect = gates.stream().map(cluster -> cluster.marsNode).collect(Collectors.toList());
+        List<MarsNode> marsNodes = MarsNode.canInNodes(collect, clientIp, userId);
+        if (marsNodes == null){
+            return null;
+        }
+        int[] weight = marsNodes.stream().mapToInt(c -> {
             //如果userId 为 -1 则不做黑白名单验证
-            if (userId == -1){
-                return c.nodeConfig.weight;
+            if (userId == -1) {
+                return c.getNodeConfig().weight;
             }
-            int[] whiteIdList = c.nodeConfig.whiteIdList;
-            if (whiteIdList.length > 0 && Arrays.stream(whiteIdList).noneMatch(id -> id == userId)) {
-                return 0;
+            if (MarsNode.inWhiteList(nodeConfig,clientIp,userId)){
+                return c.getNodeConfig().weight;
             }
-            String[] whiteIpList = c.nodeConfig.whiteIpList;
-            if (whiteIpList.length > 0 && Arrays.stream(whiteIpList).noneMatch(ip -> StrUtil.equals(clientIp, ip))) {
-                return 0;
-            }
-            return c.nodeConfig.weight;
+            return c.getNodeConfig().weight;
         }).toArray();
         int index = RandomUtil.randomWidget(weight);
-        if (index == -1){
+        if (index == -1) {
             return null;
         }
-        return gates.get(index);
+        return marsNodes.get(index);
     }
 
     /**
      * 随机一个网关节点
      */
-    public ClusterClient randomGate(){
-      return randomGate(-1,null);
+    public MarsNode randomGate() {
+        return randomGate(-1, null);
     }
 
     public List<ClusterClient> getAll() {
         return new ArrayList<>(clusterClientMap.values());
     }
 
-    public List<ClusterClient> getByType(NodeType nodeType) {
-        List<ClusterClient> clusterClients = new ArrayList<>();
-        clusterClientMap.values().forEach(clusterClient -> {
-            if (nodeType.name().equals(clusterClient.getType())) {
-                clusterClients.add(clusterClient);
-            }
-        });
-        return clusterClients;
+    public List<ClusterClient> getAllByType(NodeType nodeType) {
+        return clusterClientMap.values().stream().filter(c -> StrUtil.equals(nodeType.name(), c.getType())).collect(Collectors.toList());
+    }
+
+    public ClusterClient getByName(String name) {
+        if (StrUtil.isBlank(name)){
+            return null;
+        }
+        return clusterClientMap.values().stream().filter(clusterClient -> name.equals(clusterClient.nodeConfig.getName())).findAny().orElse(null);
     }
 
     public MarsNode getNode(String path) {
@@ -248,7 +254,7 @@ public class ClusterSystem implements MarsNodeListener, ApplicationListener<Cont
     }
 
     public ConnectPool getMarsConnectPool(NetAddress netAddress) {
-        return new ConnectPool(netAddress, initializer).init().start(timerCenter);
+        return new ConnectPool(netAddress, initializer, nodeConfig.clusterConnectPoolSize).init().start(timerCenter);
     }
 
     public void startClusterServer() {

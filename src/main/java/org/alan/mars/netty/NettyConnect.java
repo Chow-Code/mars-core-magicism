@@ -1,16 +1,12 @@
-/*
- * Copyright (c) 2017. Chengdu Qianxing Technology Co.,LTD.
- * All Rights Reserved.
- */
-
 package org.alan.mars.netty;
 
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import lombok.extern.slf4j.Slf4j;
+import org.alan.mars.message.NetAddress;
 import org.alan.mars.net.Connect;
 import org.alan.mars.net.ConnectListener;
-import org.alan.mars.message.NetAddress;
 
 import java.net.InetSocketAddress;
 import java.util.List;
@@ -27,15 +23,15 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @Slf4j
 public abstract class NettyConnect extends SimpleChannelInboundHandler<Object> implements Connect {
 
-    protected ChannelHandlerContext ctx;
+    protected Channel channel;
     protected NetAddress remoteAddress;
-    protected List<ConnectListener> connectListeners = new CopyOnWriteArrayList<>();
+    protected final List<ConnectListener> connectListeners = new CopyOnWriteArrayList<>();
     protected long lastHeartbeatTime;
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         super.channelActive(ctx);
-        this.ctx = ctx;
+        this.channel = ctx.channel();
         log.debug("连接创建完成,ctx={}", ctx);
         InetSocketAddress address = (InetSocketAddress) ctx.channel().remoteAddress();
         remoteAddress = new NetAddress(address.getAddress().getHostAddress(), address.getPort());
@@ -48,8 +44,7 @@ public abstract class NettyConnect extends SimpleChannelInboundHandler<Object> i
     }
 
     @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause)
-            throws Exception {
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         log.error("tips caught exception,ctx=" + ctx, cause);
         close();
     }
@@ -57,12 +52,11 @@ public abstract class NettyConnect extends SimpleChannelInboundHandler<Object> i
     @Override
     public boolean write(Object msg) {
         try {
-            ctx.writeAndFlush(msg).addListener(future -> {
+            channel.writeAndFlush(msg).addListener(future -> {
                 if (!future.isSuccess()) {
                     Throwable e = future.cause();
                     if (e != null) {
-                        e.printStackTrace();
-                        log.error("", e);
+                        log.error("写消息失败", e);
                     }
                 }
             });
@@ -75,7 +69,7 @@ public abstract class NettyConnect extends SimpleChannelInboundHandler<Object> i
 
     @Override
     public boolean isActive() {
-        return ctx.channel().isActive();
+        return channel.isActive();
     }
 
     @Override
@@ -85,38 +79,37 @@ public abstract class NettyConnect extends SimpleChannelInboundHandler<Object> i
 
     @Override
     public void close() {
-        log.debug("服务器主动关闭连接,netAddress={},ctx={}", remoteAddress, ctx);
+        log.debug("服务器主动关闭连接, netAddress = {}, ctx = {}", remoteAddress, channel);
         try {
-            ctx.close();
+            channel.close();
         } catch (Exception e) {
-            log.warn("关闭连接异常,netAddress=" + remoteAddress + ",ctx=" + ctx, e);
+            log.warn("关闭连接异常,netAddress = " + remoteAddress + ",channel = " + channel, e);
         }
 
     }
 
 
     public void writeAndClose(Object obj) {
-        log.debug("服务器主动关闭连接并通知,netAddress={},ctx={}", remoteAddress, ctx);
+        log.info("服务器主动关闭连接并通知, netAddress = {}, channel = {}", remoteAddress, channel);
         try {
-            ctx.writeAndFlush(obj).addListener(future -> {
-               if (isActive()){
-                   ctx.close();
-               }
+            channel.writeAndFlush(obj).addListener(future -> {
+                if (isActive()) {
+                    channel.close();
+                }
             });
         } catch (Exception e) {
-            log.warn("关闭连接异常,netAddress=" + remoteAddress + ",ctx=" + ctx, e);
+            log.warn("关闭连接异常,netAddress = " + remoteAddress + ", channel = " + channel, e);
         }
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
+    protected void channelRead0(ChannelHandlerContext ctx, Object msg) {
         messageReceived(msg);
     }
 
     @Override
     public void channelUnregistered(ChannelHandlerContext ctx) throws Exception {
         super.channelUnregistered(ctx);
-
     }
 
     @Override
@@ -146,7 +139,7 @@ public abstract class NettyConnect extends SimpleChannelInboundHandler<Object> i
     @Override
     public String toString() {
         return "NettyConnect{" +
-                "ctx=" + ctx +
+                "channel=" + channel +
                 ", remoteAddress=" + remoteAddress +
                 '}';
     }

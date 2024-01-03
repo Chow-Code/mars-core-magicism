@@ -1,8 +1,3 @@
-/*
- * Copyright (c) 2017. Chengdu Qianxing Technology Co.,LTD.
- * All Rights Reserved.
- */
-
 package org.alan.mars.cluster;
 
 import io.netty.channel.ChannelHandlerContext;
@@ -10,9 +5,9 @@ import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.alan.mars.message.ClusterRegisterMsg;
+import org.alan.mars.message.PFMessage;
 import org.alan.mars.netty.NettyConnect;
 import org.alan.mars.protostuff.MessageUtil;
-import org.alan.mars.message.PFMessage;
 
 /**
  * Created on 2017/3/27.
@@ -24,7 +19,7 @@ import org.alan.mars.message.PFMessage;
 public class ClusterConnect extends NettyConnect {
 
     private final ClusterMessageDispatcher clusterMessageDispatcher;
-    ClusterMessage clusterMessage = new ClusterMessage(new PFMessage(1, 1, null));
+    private final ClusterMessage clusterMessage = new ClusterMessage(new PFMessage(1, 1, 0, null));
 
     public ClusterConnect(ClusterMessageDispatcher clusterMessageDispatcher) {
         this.clusterMessageDispatcher = clusterMessageDispatcher;

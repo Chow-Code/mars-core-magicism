@@ -10,8 +10,9 @@ import org.alan.mars.message.PFMessage;
  */
 public class ClusterMessage {
     public String sessionId;
-    public PFMessage msg;
+    public final PFMessage msg;
     public long userId;
+    public long playerId;
 
     public ClusterMessage(PFMessage msg) {
         this.msg = msg;
@@ -22,9 +23,10 @@ public class ClusterMessage {
         this.msg = msg;
     }
 
-    public ClusterMessage(String sessionId, PFMessage msg, long userId) {
+    public ClusterMessage(String sessionId, PFMessage msg, long userId , long playerId) {
         this.sessionId = sessionId;
         this.msg = msg;
         this.userId = userId;
+        this.playerId = playerId;
     }
 }

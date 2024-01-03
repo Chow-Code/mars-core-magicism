@@ -1,13 +1,7 @@
-/*
- * Copyright (c) 2017. Chengdu Qianxing Technology Co.,LTD.
- * All Rights Reserved.
- */
-
 package org.alan.mars.timer;
 
 /**
  * 定时事件监听器
- *
  * Created on 2017/3/15.
  *
  * @author Alan

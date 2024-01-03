@@ -4,6 +4,7 @@ import com.esotericsoftware.reflectasm.MethodAccess;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import lombok.extern.slf4j.Slf4j;
+import org.alan.mars.gate.GateChannelInitializer;
 import org.alan.mars.message.PFMessage;
 import org.alan.mars.utils.ClassUtils;
 import org.springframework.aop.support.AopUtils;
@@ -36,9 +37,10 @@ public class MessageUtil {
         if (msg.data != null) {
             len = msg.data.length;
         }
-        ByteBuf byteBuf = Unpooled.buffer(len + 4);
+        ByteBuf byteBuf = Unpooled.buffer(len + 6);
         byteBuf.writeShort(msg.messageType);
         byteBuf.writeShort(msg.cmd);
+        byteBuf.writeShort(msg.reqId);
         byteBuf.writeBytes(msg.data);
         return byteBuf;
     }
@@ -50,7 +52,7 @@ public class MessageUtil {
             return null;
         }
         byte[] data = ProtostuffUtil.serialize(msg);
-        return new PFMessage(responseMessage.messageType(), responseMessage.cmd(), data);
+        return new PFMessage(responseMessage.messageType(), responseMessage.cmd(), 0 ,data);
     }
 
     public static Map<Integer, MessageController> load(ApplicationContext context) {

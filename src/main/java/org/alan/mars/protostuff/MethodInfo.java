@@ -9,10 +9,10 @@ import java.lang.reflect.Type;
  * @since 1.0
  */
 public class MethodInfo {
-    public int index;
-    public String name;
-    public Class<?>[] params;
-    public Type returnType;
+    public final int index;
+    public final String name;
+    public final Class<?>[] params;
+    public final Type returnType;
 
     public MethodInfo(int index, String name, Class<?>[] params, Type returnType) {
         this.index = index;

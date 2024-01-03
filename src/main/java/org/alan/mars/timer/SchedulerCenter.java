@@ -1,17 +1,14 @@
-/**
- * Copyright Chengdu Qianxing Technology Co.,LTD.
- * All Rights Reserved.
- * 2014年11月6日
- */
 package org.alan.mars.timer;
 
-import cn.hutool.core.date.DateTime;
+import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.util.StrUtil;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.quartz.*;
 import org.quartz.impl.StdSchedulerFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Date;
+import java.util.TimeZone;
 
 /**
  * 程序调度管理器，用于各种定时任务，循环任务等
@@ -123,7 +120,7 @@ import java.util.Date;
  *
  *      W 字符代表着平日 (Mon-Fri)，并且仅能用于日域中。它用来指定离指定日的最近的一个平日。大部分的商业处理都是基于工作周的，所以 W
  *      字符可能是非常重要的。例如，日域中的 15W 意味着 "离该月15号的最近一个平日。" 假如15号是星期六，那么 trigger 会在14号
- *      (星期四)触发，因为距15号最近的是星期一，这个例子中也会是17号（译者Unmi注：不会在17号触发的，如果是15W，可能会是在14号
+ *      (星期四)触发，因为距15号最近的是星期一，这个例子中也会是17号（注：不会在17号触发的，如果是15W，可能会是在14号
  *      (15号是星期六)或者15号(15号是星期天)触发，也就是只能出现在邻近的一天，如果15号当天为平日直接就会当日执行）。W
  *      只能用在指定的日域为单天，不能是范围或列表值。
  *
@@ -137,7 +134,7 @@ import java.util.Date;
  *      Cron 表达式 Cookbook
  *
  *      此处的 Cron 表达式 cookbook
- *      旨在为常用的执行需求提供方案。尽管不可能列举出所有的表达式，但下面的应该为满足你的业务需求提供了足够的例子。
+ *      旨在为常用地执行需求提供方案。尽管不可能列举出所有的表达式，但下面的应该为满足你的业务需求提供了足够的例子。
  *
  *      ·分钟的 Cron 表达式
  *
@@ -166,38 +163,75 @@ import java.util.Date;
  *      ? * 6#3 每月从第一天算起每五天的 12:00 PM (中午) 0 0 12 1/5 * ? 每一个 11 月 11 号的 11:11
  * AM 0 11 11 11 11 ? 三月份每个周三的 2:10 PM 和 2:44 PM 0 10,44 14 ? 3 WED
  */
+@Slf4j
 public class SchedulerCenter {
 
     private final SchedulerFactory schedulerFactory;
+    /**
+     * 默认是机器的时区
+     */
+    private final TimeZone timezone;
 
-    private final Logger log = LoggerFactory.getLogger(getClass());
+    @Getter
+    private volatile boolean start;
 
-    public SchedulerCenter() {
-        schedulerFactory = new StdSchedulerFactory();
+    public SchedulerCenter() throws Exception {
+        this(TimeZone.getDefault());
     }
 
-    public SchedulerCenter(String configFile) throws Exception {
-        schedulerFactory = new StdSchedulerFactory(configFile);
+    public SchedulerCenter(TimeZone timezone) throws Exception {
+        this(null, timezone);
     }
 
-    public void addJob(SchedulerEvent<?> schedulerEvent)
-            throws Exception {
-        String cronExpression = schedulerEvent.getCronExpression();
-        JobDetail job = JobBuilder.newJob(JobDemo.class).build();
-        job.getJobDataMap().put(SchedulerEvent.class.getSimpleName(), schedulerEvent);
-        CronTrigger trigger = TriggerBuilder.newTrigger()
-                .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
-                .build();
-        schedulerEvent.setJobKey(job.getKey());
-        Scheduler scheduler = schedulerFactory.getScheduler();
-        scheduler.scheduleJob(job, trigger);
-        Date date = trigger.getNextFireTime();
-        schedulerEvent.nextTime = date.getTime();
-        log.info("加入新的计划任务,cronExpression=" + cronExpression + ",下次执行时间="
-                + new DateTime(date));
-        if (!scheduler.isStarted()) {
-            //延时10秒钟开始执行
-            scheduler.startDelayed(10);
+    public SchedulerCenter(String configFile, TimeZone timezone) throws Exception {
+        if (StrUtil.isBlank(configFile)) {
+            schedulerFactory = new StdSchedulerFactory();
+        } else {
+            schedulerFactory = new StdSchedulerFactory(configFile);
+        }
+        this.timezone = timezone;
+    }
+
+    public void start() {
+        this.start = true;
+        try {
+            Scheduler scheduler = schedulerFactory.getScheduler();
+            scheduler.start();
+        } catch (Exception e) {
+            log.error("开启计划任务失败", e);
+        }
+    }
+
+    public void stop() {
+        this.start = false;
+        try {
+            Scheduler scheduler = schedulerFactory.getScheduler();
+            scheduler.shutdown();
+        } catch (Exception e) {
+            log.error("关闭计划任务失败", e);
+        }
+    }
+
+    public void addJob(SchedulerEvent<?> schedulerEvent) {
+        try {
+            String cron = schedulerEvent.getCronExpression();
+            JobDetail job = JobBuilder.newJob(JobDemo.class).build();
+            job.getJobDataMap().put(SchedulerEvent.class.getSimpleName(), schedulerEvent);
+            CronTrigger trigger = TriggerBuilder.newTrigger()
+                    .withSchedule(CronScheduleBuilder.cronSchedule(cron).inTimeZone(timezone))
+                    .build();
+            schedulerEvent.setJobKey(job.getKey());
+            Scheduler scheduler = schedulerFactory.getScheduler();
+            scheduler.scheduleJob(job, trigger);
+            if (start) {
+                Date date = trigger.getNextFireTime();
+                schedulerEvent.nextTime = date.getTime();
+                log.info("加入新的计划任务, cron = {}, 下次执行时间 = {}({})", cron, DateUtil.format(new Date(schedulerEvent.nextTime),"yyyy-MM-dd HH:mm:ss"),schedulerEvent.nextTime);
+            } else {
+                log.info("加入新的计划任务, cron = {}, 将在启动过后才执行", cron);
+            }
+        } catch (Exception e) {
+            log.error("加入计划任务失败", e);
         }
     }
 
@@ -217,25 +251,11 @@ public class SchedulerCenter {
             JobDetail jobDetail = jobExecutionContext.getJobDetail();
             SchedulerEvent<?> event = (SchedulerEvent<?>) jobDetail.getJobDataMap().get(SchedulerEvent.class.getSimpleName());
             event.execute(jobExecutionContext);
-            if (jobExecutionContext.getNextFireTime()==null){
-                event.nextTime=-1;
-            }else {
+            if (jobExecutionContext.getNextFireTime() == null) {
+                event.nextTime = -1;
+            } else {
                 event.nextTime = jobExecutionContext.getNextFireTime().getTime();
             }
         }
     }
-
-    public static class ExecutorImpl implements Job {
-        @Override
-        public void execute(JobExecutionContext jobExecutionContext) {
-            System.out.println("--------" + hashCode() + "--------"
-                    + System.currentTimeMillis() + "------------");
-            try {
-                Thread.sleep(10000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
 }

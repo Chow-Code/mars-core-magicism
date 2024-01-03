@@ -1,12 +1,7 @@
-/*
- * Copyright (c) 2017. Chengdu Qianxing Technology Co.,LTD.
- * All Rights Reserved.
- */
-
 package org.alan.mars.timer;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.TimeUnit;
 
@@ -16,33 +11,37 @@ import java.util.concurrent.TimeUnit;
  * @author Alan
  * @since 1.0
  */
+@Slf4j
 public class TimerEvent<T> implements Runnable {
     /**
      * 定义无限循环常量
      */
     public static final int INFINITE_CYCLE = 0x7fffffff;
 
-    public static int debugTime = 1000;
-
-    /**
-     * 日志记录
-     */
-    private static final Logger log = LoggerFactory.getLogger(TimerEvent.class);
+    public static final int DEBUG_TIME = 1000;
 
     /* fields */
     /**
      * 定时事件监听器
      */
-    protected TimerListener<T> listener;
+    protected final TimerListener<T> listener;
 
     /**
      * 事件动作参数
+     * -- GETTER --
+     *  获得事件动作参数
+
      */
+    @Getter
     protected T parameter;
 
     /**
      * 间隔时间
+     * -- GETTER --
+     *  获得定时时间
+
      */
+    @Getter
     protected int intervalTime;
 
     /**
@@ -55,32 +54,56 @@ public class TimerEvent<T> implements Runnable {
 
     /**
      * 定时次数
+     * -- GETTER --
+     *  获得定时次数
+
      */
+    @Getter
     protected int count;
 
     /**
      * 初始延迟时间
+     * -- GETTER --
+     *  获得定时的起始延时时间
+
      */
+    @Getter
     protected int initTime;
 
     /**
      * 决对时间定时，线程工作的时间计算在定时时间内
+     * -- GETTER --
+     *  判断是否为决对时间定时
+
      */
+    @Getter
     protected boolean absolute;
 
     /**
      * 起始时间
+     * -- GETTER --
+     *  获得起始时间
+
      */
+    @Getter
     protected long startTime;
 
     /**
      * 当前运行的时间
+     * -- GETTER --
+     *  获得当前运行的时间
+
      */
+    @Getter
     protected long currentTime;
 
     /**
      * 下一次运行的时间
+     * -- GETTER --
+     *  获得下一次运行的时间
+
      */
+    @Getter
     protected long nextTime;
 
     /**
@@ -204,13 +227,6 @@ public class TimerEvent<T> implements Runnable {
     }
 
     /**
-     * 获得事件动作参数
-     */
-    public Object getParameter() {
-        return parameter;
-    }
-
-    /**
      * 设置事件动作参数
      */
     public TimerEvent<T> setParameter(T parameter) {
@@ -219,25 +235,11 @@ public class TimerEvent<T> implements Runnable {
     }
 
     /**
-     * 获得定时时间
-     */
-    public int getIntervalTime() {
-        return intervalTime;
-    }
-
-    /**
      * 设置定时时间
      */
     public TimerEvent<T> setIntervalTime(int time) {
         intervalTime = time;
         return this;
-    }
-
-    /**
-     * 获得定时次数
-     */
-    public int getCount() {
-        return count;
     }
 
     /**
@@ -264,13 +266,6 @@ public class TimerEvent<T> implements Runnable {
     }
 
     /**
-     * 获得定时的起始延时时间
-     */
-    public int getInitTime() {
-        return initTime;
-    }
-
-    /**
      * 设置定时的起始延时时间
      */
     public TimerEvent<T> setInitTime(int initTime) {
@@ -279,39 +274,11 @@ public class TimerEvent<T> implements Runnable {
     }
 
     /**
-     * 判断是否为决对时间定时
-     */
-    public boolean isAbsolute() {
-        return absolute;
-    }
-
-    /**
      * 设置决对或相对时间定时
      */
     public TimerEvent<T> setAbsolute(boolean b) {
         absolute = b;
         return this;
-    }
-
-    /**
-     * 获得起始时间
-     */
-    public long getStartTime() {
-        return startTime;
-    }
-
-    /**
-     * 获得当前运行的时间
-     */
-    public long getCurrentTime() {
-        return currentTime;
-    }
-
-    /**
-     * 获得下一次运行的时间
-     */
-    public long getNextTime() {
-        return nextTime;
     }
 
     /**
@@ -347,14 +314,14 @@ public class TimerEvent<T> implements Runnable {
             listener.onTimer(this);
         } catch (Throwable e) {
             if (log.isWarnEnabled())
-                log.warn("fire error, " + toString(), e);
+                log.warn("fire error, " + this, e);
         }
         long endTime = System.currentTimeMillis();
 
         // 添加对执行超过1秒的事件进行打印
         if (log.isDebugEnabled()) {
-            if (endTime - currentTime > debugTime) {
-                log.warn("event fire long time,event=" + toString());
+            if (endTime - currentTime > DEBUG_TIME) {
+                log.warn("event fire long time,event=" + this);
             }
         }
         inFire = false;

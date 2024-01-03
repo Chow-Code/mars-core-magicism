@@ -15,7 +15,7 @@ import java.util.List;
  */
 public class ClusterMessageEncoder extends MessageToMessageEncoder<ClusterMessage> {
     @Override
-    protected void encode(ChannelHandlerContext ctx, ClusterMessage msg, List<Object> out) throws Exception {
+    protected void encode(ChannelHandlerContext ctx, ClusterMessage msg, List<Object> out) {
         out.add(Unpooled.wrappedBuffer(ProtostuffUtil.serialize(msg)));
     }
 }

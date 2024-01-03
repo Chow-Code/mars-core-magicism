@@ -10,5 +10,5 @@ import org.alan.mars.protostuff.PFSession;
  */
 public interface SessionEnterListener {
 
-    void sessionEnter(PFSession session, long userId);
+    void sessionEnter(PFSession session, long userId, long playerId);
 }

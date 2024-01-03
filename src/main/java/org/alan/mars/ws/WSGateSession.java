@@ -14,8 +14,8 @@ public class WSGateSession extends GateSession {
     @Override
     protected void checkServer() {
         AttributeKey<String> key = AttributeKey.valueOf("X-Real_IP");
-        if (ctx.channel().hasAttr(key)) {
-            Attribute<String> attribute = ctx.channel().attr(key);
+        if (channel.hasAttr(key)) {
+            Attribute<String> attribute = channel.attr(key);
             if (attribute != null && attribute.get() != null) {
                 remoteAddress.setHost(attribute.get());
             }

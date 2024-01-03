@@ -1,8 +1,3 @@
-/*
- * Copyright (c) 2017. Chengdu Qianxing Technology Co.,LTD.
- * All Rights Reserved.
- */
-
 package org.alan.mars.tips;
 
 
@@ -21,11 +16,12 @@ public enum MarsResultEnum {
     NETWORK_CANT_USE(0, "网络不可用"),
     NETWORK_SUCCESS(1, "连接成功"),
     SERVICE_CANT_USE(2, "服务不可用"),
-    PLAYER_KICK_OUT(3, "踢出下线");
+    PLAYER_KICK_OUT(3, "被别的设备挤下去"),
+    OPERATIONS_KICK_OUT(4,"运营主动踢"),
+    ;
 
-
-    public int code;
-    public String message;
+    public final int code;
+    public final String message;
 
     MarsResultEnum(int code, String message) {
         this.code = code;

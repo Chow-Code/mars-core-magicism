@@ -21,11 +21,18 @@ public interface MessageConst {
         //广播消息
         int BROADCAST_MSG = 109;
 
+        int SAVE_NODE_CONFIG = 110;
+
+        int INTERNAL_SERVER_ERROR = 500;
+
+        int CMD_NOT_FOUND = 404;
+
     }
 
     interface ToClientConst {
         int TYPE = 150;
         int REQ_GET_SERVER_STATUS = 151;
         int RESP_GET_SERVER_STATUS = 152;
+        int PUSH_KICK_OUT = 153;
     }
 }

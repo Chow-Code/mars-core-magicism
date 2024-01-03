@@ -1,5 +1,7 @@
 package org.alan.mars.listener;
 
+import org.alan.mars.message.SessionVerifyPass;
+
 /**
  * Created on 2017/10/24.
  *
@@ -7,5 +9,5 @@ package org.alan.mars.listener;
  * @since 1.0
  */
 public interface SessionVerifyListener {
-    void userVerifyPass(String sessionId, long userId,String ip);
+    void userVerifyPass(SessionVerifyPass sessionVerifyPass);
 }

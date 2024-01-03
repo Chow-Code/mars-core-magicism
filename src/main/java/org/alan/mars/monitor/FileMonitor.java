@@ -4,14 +4,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.monitor.FileAlterationListenerAdaptor;
 import org.apache.commons.io.monitor.FileAlterationMonitor;
 import org.apache.commons.io.monitor.FileAlterationObserver;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -28,8 +28,8 @@ import java.util.Map;
 public class FileMonitor extends FileAlterationListenerAdaptor implements CommandLineRunner, ApplicationListener<ContextRefreshedEvent> {
     private final FileAlterationMonitor monitor = new FileAlterationMonitor();
     private final Map<String, FileLoader> fileLoaders = new HashMap<>();
-    public Map<String, FileAlterationObserver> fileObserver = new HashMap<>();
-    public Map<String, List<FileChangeListener>> fileChangeListenerMap = new HashMap<>();
+    public final Map<String, FileAlterationObserver> fileObserver = new HashMap<>();
+    public final Map<String, List<FileChangeListener>> fileChangeListenerMap = new HashMap<>();
 
     public void start() {
         log.info("[文件监视器]启动");
@@ -45,16 +45,12 @@ public class FileMonitor extends FileAlterationListenerAdaptor implements Comman
     public void addFileObserver(String fileName, FileLoader fileLoader, boolean load) {
         log.info("[文件监视器]添加文件监听, fileName={}, load={}", fileName, load);
         if (fileName == null || fileName.isEmpty()) {
-            log.warn("[文件监视器]添加文件监听错误, 参数不能为空");
+            log.error("[文件监视器]添加文件监听错误, 参数不能为空");
             return;
         }
-        String[] fn = fileName.split("/");
-        if (fn.length != 2) {
-            log.warn("[文件监视器]添加文件监听错误, 参数不能为空, file=" + fileName);
-            return;
-        }
-        String dirName = fn[0];
-        String fName = fn[1];
+        Path filePath = Paths.get(fileName);
+        String dirName = filePath.getParent().toString();
+        String fName = filePath.getFileName().toString();
         addDirectoryObserver(dirName, null);
         if (fileLoader != null) {
             fileLoaders.put(fName, fileLoader);
@@ -76,7 +72,7 @@ public class FileMonitor extends FileAlterationListenerAdaptor implements Comman
             try {
                 observer.initialize();
             } catch (Exception e) {
-                e.printStackTrace();
+                throw new RuntimeException(e);
             }
             monitor.addObserver(observer);
             fileObserver.putIfAbsent(dirName, observer);
@@ -98,7 +94,7 @@ public class FileMonitor extends FileAlterationListenerAdaptor implements Comman
             } else {
                 String path = file.getPath();
                 fileLoaders.forEach((key, value) -> {
-                    log.info("[文件监视器] path = {}, key = {}, boolean = {}", path, key, path.contains(key));
+                    log.info("[文件监视器] path = {}, boolean = {}", path, path.contains(key));
                     if (path.contains(key)) {
                         value.load(file, false);
                     }
@@ -148,7 +144,7 @@ public class FileMonitor extends FileAlterationListenerAdaptor implements Comman
     public void onApplicationEvent(ContextRefreshedEvent event) {
         log.info("[文件监视器]扫描上层文件监听器...");
         Map<String, FileChangeListener> maps = event.getApplicationContext().getBeansOfType(FileChangeListener.class);
-        if (maps != null && !maps.isEmpty()) {
+        if (!maps.isEmpty()) {
             maps.values().forEach(f -> {
                 log.info(f.getFileName() + "->" + f.getClass());
                 List<FileChangeListener> list = fileChangeListenerMap.computeIfAbsent(f.getFileName(), k -> new ArrayList<>());
@@ -158,7 +154,7 @@ public class FileMonitor extends FileAlterationListenerAdaptor implements Comman
     }
 
     @Override
-    public void run(String... args) throws Exception {
+    public void run(String... args) {
         start();
     }
 }

@@ -18,6 +18,8 @@ public class BroadCastMessage {
 
     public Set<Long> playerIds;
 
+    public Set<Integer> serverAreas;
+
     public BroadCastMessage() {
     }
 

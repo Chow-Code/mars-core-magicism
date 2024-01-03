@@ -14,5 +14,6 @@ public class SessionCreate {
     public String sessionId;
     public NetAddress netAddress;
     public long userId;
+    public long playerId;
     public String nodePath;
 }

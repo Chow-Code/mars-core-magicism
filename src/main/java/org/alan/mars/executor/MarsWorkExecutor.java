@@ -1,13 +1,14 @@
 package org.alan.mars.executor;
 
+import cn.hutool.core.thread.ThreadUtil;
+import lombok.RequiredArgsConstructor;
 import org.alan.mars.config.NodeConfig;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.alan.mars.utils.RandomUtil;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * 集群业务线程池
@@ -18,19 +19,28 @@ import java.util.concurrent.Executors;
  * @since 1.0
  */
 @Component
+@RequiredArgsConstructor
 public class MarsWorkExecutor {
-    @Autowired
-    private NodeConfig nodeConfig;
 
-    private final Map<Integer, ExecutorService> executorServiceMap = new ConcurrentHashMap<>();
+    private final NodeConfig nodeConfig;
+
+    private final Map<Integer, TaskGroup> executorServiceMap = new ConcurrentHashMap<>();
+    private final ExecutorService threadPoolExecutor = ThreadUtil.newExecutor(Runtime.getRuntime().availableProcessors() * 16);
 
     public void submit(int id, Runnable work) {
-        getExecutorService(id).submit(work);
+        getTaskGroup(id).submit(work);
     }
 
-    private ExecutorService getExecutorService(int id) {
+    public void submit(Runnable work) {
+        submit(RandomUtil.random(3000), work);
+    }
+
+    public TaskGroup newTaskGroup() {
+        return new TaskGroup(threadPoolExecutor);
+    }
+
+    private TaskGroup getTaskGroup(int id) {
         int key = id % nodeConfig.workPoolNum;
-        return executorServiceMap.computeIfAbsent(key, k -> Executors.newSingleThreadExecutor());
+        return executorServiceMap.computeIfAbsent(key, k -> newTaskGroup());
     }
-
 }

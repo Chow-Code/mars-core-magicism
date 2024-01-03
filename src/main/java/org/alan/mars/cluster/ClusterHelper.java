@@ -1,6 +1,6 @@
 package org.alan.mars.cluster;
 
-import java.util.Arrays;
+import cn.hutool.core.util.ArrayUtil;
 
 /**
  * Created on 2018/1/3.
@@ -9,41 +9,46 @@ import java.util.Arrays;
  * @since 1.0
  */
 public class ClusterHelper {
+    /**
+     * 判断ip地址是否在白名单
+     *
+     * @param ip        要判断的IP地址
+     * @param whiteList 当前的白名单列表
+     * @return true 带表在白名单中 如果白名单为空则返回true
+     */
     public static boolean inIpWhiteList(String ip, String[] whiteList) {
-        if (whiteList == null || whiteList.length == 0) {
+        if (ArrayUtil.isEmpty(whiteList)) {
             return true;
         }
-        return Arrays.asList(whiteList).contains(ip);
+        return ArrayUtil.contains(whiteList, ip);
     }
 
+    /**
+     * 精确判断ip地址是否在白名单
+     *
+     * @param ip        要判断的IP地址
+     * @param whiteList 当前的白名单列表
+     * @return true 带表在白名单中
+     */
     public static boolean preciseInIpWhiteList(String ip, String[] whiteList) {
-        if (whiteList == null || whiteList.length == 0) {
-            return false;
-        }
-        return Arrays.asList(whiteList).contains(ip);
+        return ArrayUtil.contains(whiteList, ip);
     }
 
-    public static boolean inIdWhiteList(long id, int[] whiteList) {
-        if (whiteList == null || whiteList.length == 0) {
+    /**
+     * 判断id是否在白名单
+     *
+     * @param id        要判断的ID
+     * @param whiteList 当前的白名单列表
+     * @return true 带表在白名单中 如果白名单为空则返回true
+     */
+    public static boolean inIdWhiteList(long id, long[] whiteList) {
+        if (ArrayUtil.isEmpty(whiteList)) {
             return true;
         }
-        for (long wid : whiteList) {
-            if (wid == id) {
-                return true;
-            }
-        }
-        return false;
+        return ArrayUtil.contains(whiteList, id);
     }
 
-    public static boolean preciseInIdWhiteList(long id, int[] whiteList) {
-        if (whiteList == null) {
-            return false;
-        }
-        for (long wid : whiteList) {
-            if (wid == id) {
-                return true;
-            }
-        }
-        return false;
+    public static boolean preciseInIdWhiteList(long id, long[] whiteList) {
+        return ArrayUtil.contains(whiteList, id);
     }
 }

@@ -1,14 +1,13 @@
-/*
- * Copyright (c) 2017. Chengdu Qianxing Technology Co.,LTD.
- * All Rights Reserved.
- */
-
 package org.alan.mars.gate;
 
-import com.alibaba.fastjson.JSONObject;
+import cn.hutool.core.util.StrUtil;
+import lombok.extern.slf4j.Slf4j;
+import org.alan.mars.MarsContext;
 import org.alan.mars.cluster.ClusterClient;
 import org.alan.mars.cluster.ClusterMessage;
 import org.alan.mars.cluster.ClusterSystem;
+import org.alan.mars.config.NodeConfig;
+import org.alan.mars.constant.MessageConst.ToClientConst;
 import org.alan.mars.curator.NodeType;
 import org.alan.mars.message.*;
 import org.alan.mars.net.Connect;
@@ -18,13 +17,16 @@ import org.alan.mars.netty.NettyConnect;
 import org.alan.mars.protostuff.MessageUtil;
 import org.alan.mars.protostuff.ProtostuffUtil;
 import org.alan.mars.tips.GetServerStatus;
+import org.alan.mars.tips.KickOutType;
 import org.alan.mars.tips.MarsResultEnum;
-import org.alan.mars.constant.MessageConst.ToClientConst;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.alan.mars.tips.PushKickOut;
 
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+
+import static org.alan.mars.cloudflare.HAProxyMessageHandler.CLIENT_HOST;
 
 /**
  * <p>
@@ -37,11 +39,9 @@ import java.util.Map;
  * @since 1.0
  */
 @SuppressWarnings("unused")
+@Slf4j
 public class GateSession extends NettyConnect implements Inbox<PFMessage>, ConnectListener {
-
-    public static Map<String, GateSession> gateSessionMap = new HashMap<>();
-
-    protected Logger log = LoggerFactory.getLogger(getClass());
+    public static Map<String, GateSession> gateSessionMap = new ConcurrentHashMap<>();
     /**
      * 大厅通道
      */
@@ -62,6 +62,14 @@ public class GateSession extends NettyConnect implements Inbox<PFMessage>, Conne
     public long activeTime;
 
     public long createTime;
+    /**
+     * 虚拟大区
+     */
+    public int serverArea;
+    /**
+     * 玩家ID
+     */
+    public long playerId;
 
     public Connect connect;
 
@@ -93,12 +101,12 @@ public class GateSession extends NettyConnect implements Inbox<PFMessage>, Conne
             return;
         }
         if (msg.messageType == 1 && msg.cmd == 1) {//拦截ping消息
-            activeTime = System.currentTimeMillis();
-            PFMessage pfMessage = new PFMessage(1, 2, ProtostuffUtil.serialize(new PingPong.RespPong(activeTime)));
+            lastHeartbeatTime = activeTime = System.currentTimeMillis();
+            PFMessage pfMessage = new PFMessage(1, 2, msg.reqId, ProtostuffUtil.serialize(new PingPong.RespPong(activeTime)));
             write(pfMessage);
             return;
         }
-        ClusterMessage clusterMessage = new ClusterMessage(sessionId, msg, userId);
+        ClusterMessage clusterMessage = new ClusterMessage(sessionId, msg, userId, playerId);
         // 查询微服务消息
         try {
             Connect micconnect = ClusterSystem.system.microserviceAllot(currentClient, msg.messageType);
@@ -139,19 +147,24 @@ public class GateSession extends NettyConnect implements Inbox<PFMessage>, Conne
     }
 
     public void sendLogout() {
-        try {
-            SessionLogout sessionLogout = new SessionLogout();
-            sessionLogout.sessionId = sessionId;
-            sessionLogout.userId = userId;
-            PFMessage pfMessage = MessageUtil.getPFMessage(sessionLogout);
-            ClusterMessage clusterMessage = new ClusterMessage(sessionId, pfMessage, userId);
-            ClusterClient clusterClient = ClusterSystem.system.getByNodeType(NodeType.ACCOUNT, remoteAddress.getHost(), userId);
-            if (currentClient != null) {
-                clusterClient.getConnect().write(clusterMessage);
+        SessionLogout sessionLogout = new SessionLogout(sessionId, userId, playerId);
+        sessionLogout.sessionId = sessionId;
+        sessionLogout.userId = userId;
+        sessionLogout.playerId = playerId;
+        PFMessage pfMessage = MessageUtil.getPFMessage(sessionLogout);
+        ClusterMessage clusterMessage = new ClusterMessage(sessionId, pfMessage, userId, playerId);
+        //通知除Gate外所有节点
+        List<ClusterClient> clusterClients = ClusterSystem.system.getAll().stream().filter(c -> !StrUtil.equals(c.getType(), NodeType.GATE.name())).collect(Collectors.toList());
+        if (!clusterClients.isEmpty()) {
+            for (ClusterClient clusterClient : clusterClients) {
+                try {
+                    clusterClient.getConnect().write(clusterMessage);
+                } catch (Exception e) {
+                    log.warn("用户下线消息发送异常, cluster = {}",clusterClient ,e);
+                }
             }
-        } catch (Exception e) {
-            log.warn("用户下线消息发送异常", e);
         }
+
     }
 
     /**
@@ -165,8 +178,7 @@ public class GateSession extends NettyConnect implements Inbox<PFMessage>, Conne
         SessionQuit sessionQuit = new SessionQuit();
         sessionQuit.sessionId = sessionId;
         PFMessage pfMessage = MessageUtil.getPFMessage(sessionQuit);
-        ClusterMessage clusterMessage = new ClusterMessage(sessionId, pfMessage, userId);
-        log.info(JSONObject.toJSONString(connect));
+        ClusterMessage clusterMessage = new ClusterMessage(sessionId, pfMessage, userId, playerId);
         connect.write(clusterMessage);
     }
 
@@ -183,10 +195,10 @@ public class GateSession extends NettyConnect implements Inbox<PFMessage>, Conne
         sessionCreate.sessionId = sessionId;
         sessionCreate.netAddress = remoteAddress;
         sessionCreate.userId = userId;
+        sessionCreate.playerId = playerId;
         sessionCreate.nodePath = ClusterSystem.system.getNodePath();
         PFMessage pfMessage = MessageUtil.getPFMessage(sessionCreate);
-        ClusterMessage clusterMessage = new ClusterMessage(sessionId, pfMessage, userId);
-        log.debug(JSONObject.toJSONString(connect));
+        ClusterMessage clusterMessage = new ClusterMessage(sessionId, pfMessage, userId, playerId);
         connect.write(clusterMessage);
     }
 
@@ -195,19 +207,22 @@ public class GateSession extends NettyConnect implements Inbox<PFMessage>, Conne
      */
     @Override
     public void onCreate() {
-        sessionId = ctx.channel().id().asShortText();
-        log.debug("连接成功，检查服务器状态，sessionId={},net={}", sessionId, remoteAddress);
+        sessionId = channel.id().asShortText();
+        log.info("连接成功，检查服务器状态，sessionId={},net={}", sessionId, remoteAddress);
         String host = remoteAddress.getHost();
         remoteAddress.setHost(host);
     }
 
     protected void checkServer() {
-        log.debug("收到服务器检查消息，sessionId={},netAddress={}", sessionId, remoteAddress);
+        if (channel.hasAttr(CLIENT_HOST)) {
+            this.remoteAddress = channel.attr(CLIENT_HOST).get();
+        }
+        log.info("收到服务器检查消息，sessionId={},netAddress={}", sessionId, remoteAddress);
         activeTime = createTime = System.currentTimeMillis();
         // 将session添加到集群节点中
         gateSessionMap.put(sessionId, this);
         //连接建立成功以后，分配一个账号服务器进行账号认证
-        currentClient = ClusterSystem.system.getByNodeType(NodeType.ACCOUNT, remoteAddress.getHost(), userId);
+        currentClient = ClusterSystem.system.randomOneByType(NodeType.ACCOUNT, null, 0);
         sendServerStatus();
     }
 
@@ -239,21 +254,41 @@ public class GateSession extends NettyConnect implements Inbox<PFMessage>, Conne
         }
     }
 
-    public void onKickOut() {
-        log.info("用户被顶号下线，sessionId={}，playerId={}", sessionId, userId);
+    public void onKickOut(KickOutType kickOutType) {
+        log.info("用户被顶号下线，sessionId = {}，userId = {}", sessionId, userId);
         userId = 0;
         try {
-            writeAndClose(MessageUtil.getPFMessage(new GetServerStatus.RespGetServerStatus(MarsResultEnum.PLAYER_KICK_OUT)));
+            writeAndClose(MessageUtil.getPFMessage(new PushKickOut(kickOutType)));
         } catch (Exception e) {
             log.warn("用户被顶号下线,消息发送异常，", e);
         }
     }
 
+    public void onKickOut() {
+        onKickOut(KickOutType.REMOVED_BY_THE_SYSTEM);
+    }
+
     @Override
     public void onConnectClose(Connect connect) {
-        log.warn("服务节点连接断开,userId={},sessionId={},nodeAddress={}", userId, sessionId, connect.address());
         try {
-            writeAndClose(MessageUtil.getPFMessage(new GetServerStatus.RespGetServerStatus(MarsResultEnum.NETWORK_CANT_USE)));
+            //将玩家转移到其他节点
+            ClusterSystem clusterSystem = MarsContext.getBean(ClusterSystem.class);
+            NodeConfig nodeConfig = currentClient.nodeConfig;
+            String nodeName = nodeConfig.getName();
+            if (!nodeConfig.transferSession) {
+                log.warn("服务节点连接断开, 该节点不支持会话转移, node = {}, userId={}, playerId = {}, nodeAddress={}", nodeName, userId, playerId, connect.address());
+                writeAndClose(MessageUtil.getPFMessage(new GetServerStatus.RespGetServerStatus(MarsResultEnum.SERVICE_CANT_USE)));
+                return;
+            }
+            NodeType nodeType = NodeType.valueOf(nodeConfig.getType());
+            ClusterClient clusterClient = clusterSystem.randomOneByType(nodeType, connect.address().getHost(), playerId);
+            if (clusterClient != null) {
+                switchNode(clusterClient);
+                log.warn("服务节点连接断开, 切换到新的服务,node = {} -> {}, userId={}, playerId = {}, nodeAddress={}, newNode = {}", nodeName, clusterClient.nodeConfig.getName(), clusterClient.nodeConfig.getName(), userId, playerId, connect.address());
+            } else {
+                writeAndClose(MessageUtil.getPFMessage(new GetServerStatus.RespGetServerStatus(MarsResultEnum.SERVICE_CANT_USE)));
+                log.warn("服务节点连接断开, 没有可支持的服务, node = {}, userId={}, playerId = {}, nodeAddress={}", nodeName, userId, playerId, connect.address());
+            }
         } catch (Exception e) {
             log.warn("服务节点连接断开,消息发送异常，", e);
         }
@@ -291,11 +326,6 @@ public class GateSession extends NettyConnect implements Inbox<PFMessage>, Conne
 
     @Override
     public String toString() {
-        return "GateSession{" +
-                "sessionId='" + sessionId + '\'' +
-                ", userId=" + userId +
-                ", certify=" + certify +
-                ", connect=" + connect +
-                '}';
+        return "GateSession{" + "sessionId='" + sessionId + '\'' + ", userId=" + userId + ", certify=" + certify + ", connect=" + connect + '}';
     }
 }

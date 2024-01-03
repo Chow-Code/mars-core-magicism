@@ -110,7 +110,7 @@ public class RandomUtil {
     /**
      * 通过权重获数字
      *
-     * @param weights 2维数组 每个元素为长度为2的数组 下标0代表将要随机的数字 下标1代表该随机数的权重
+     * @param weights 2维数组 每个元素为长度为2的数组 下标为0则代表将要随机的数字 下标为1则代表该随机数的权重
      * @return 数字
      */
     public static int randomWidget(int[][] weights) {
